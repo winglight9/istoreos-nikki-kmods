@@ -294,6 +294,11 @@ jobs:
           # 所以只能像这样编进固件，没有「下载安装包单独装」这条路。
           # ===============================================================
           CONFIG_PACKAGE_kmod-tun=y
+          # Nikki transparent proxy prerequisites; ship with this exact kernel ABI.
+          CONFIG_PACKAGE_kmod-inet-diag=y
+          CONFIG_PACKAGE_kmod-netlink-diag=y
+          CONFIG_PACKAGE_kmod-nft-socket=y
+          CONFIG_PACKAGE_kmod-nft-tproxy=y
           EOF
 
       - name: 展开默认配置并校验机型 (defconfig + verify)
@@ -344,6 +349,10 @@ jobs:
           luci-app-ttyd
           luci-theme-argon
           luci-app-samba4
+          kmod-inet-diag
+          kmod-netlink-diag
+          kmod-nft-socket
+          kmod-nft-tproxy
           "
           SOFT="
           luci-app-ksmbd
@@ -462,6 +471,14 @@ jobs:
             exit 1
           fi
           echo "TUN 支持校验通过：kmod-tun 已入固件"
+
+          for p in kmod-inet-diag kmod-netlink-diag kmod-nft-socket kmod-nft-tproxy; do
+            if ! grep -q "^${p} " "$MANIFEST"; then
+              echo "::error::manifest 中没有 ${p}，Nikki 的透明代理依赖未完整进入固件"
+              exit 1
+            fi
+          done
+          echo "Nikki 内核依赖校验通过：inet-diag / netlink-diag / nft-socket / nft-tproxy 均已入固件"
 
       - name: 校验服务自启 (Verify services are enabled at first boot)
         run: |
@@ -743,6 +760,7 @@ jobs:
             echo "### 固件包含"
             echo
             echo "- TUN/TAP 虚拟网卡（kmod-tun）：TUN 模式代理可直接使用"
+            echo "- Nikki 透明代理依赖：kmod-inet-diag、kmod-netlink-diag、kmod-nft-socket、kmod-nft-tproxy"
             echo "- daed 底层内核支持（BTF / XDP / BPF），daed 本体刷机后自行安装"
             echo
             echo "### 刷机"
